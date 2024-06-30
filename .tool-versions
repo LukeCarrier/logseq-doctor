@@ -1,2 +1,4 @@
 poetry 1.7.1
 pre-commit 3.7.0
+rust 1.78.0
+python 3.12.4
