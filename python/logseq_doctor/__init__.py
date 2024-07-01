@@ -157,7 +157,7 @@ class LogseqRenderer(BaseRenderer):
         return f"| {self.render_inner(token)} "
 
     def render_html_span(self, token: span_tokens.HTMLSpan):
-        return self.render_inner(token)
+        return token.content
 
 
 def flat_markdown_to_outline(markdown_contents: str) -> str:
