@@ -1,13 +1,37 @@
+import json
 import os
 from pathlib import Path
 from textwrap import dedent
 
 import mistletoe
+from mistletoe.renderers.base import BaseRenderer
 from logseq_doctor import flat_markdown_to_outline
 from logseq_doctor.cli import app
 from logseq_doctor.constants import CHAR_NBSP
-from mistletoe.ast_renderer import ASTRenderer
 from typer.testing import CliRunner
+
+
+def get_ast(token):
+    node = {}
+    node['type'] = token.__class__.__name__
+    for attrname in ['content', 'footnotes']:
+        if attrname in vars(token):
+            node[attrname] = getattr(token, attrname)
+    for attrname in token.repr_attributes:
+        node[attrname] = getattr(token, attrname)
+    if 'header' in vars(token):
+        node['header'] = get_ast(getattr(token, 'header'))
+    if token.children is not None:
+        node['children'] = [get_ast(child) for child in token.children]
+    return node
+
+
+class AstRenderer(BaseRenderer):
+    def render(self, token):
+        return json.dumps(get_ast(token), indent=2) + '\n'
+
+    def __getattr__(self, name):
+        return lambda token: ''
 
 
 def assert_markdown(flat_md: str, outlined_md: str, *, ast: bool = False) -> None:
@@ -20,7 +44,7 @@ def assert_markdown(flat_md: str, outlined_md: str, *, ast: bool = False) -> Non
 
     # For debugging purposes
     if ast:  # pragma: no cover
-        print(f"{os.linesep}ASTRenderer:{os.linesep}" + mistletoe.markdown(stripped_md, ASTRenderer))
+        print(f"{os.linesep}AstRenderer:{os.linesep}" + mistletoe.markdown(stripped_md, AstRenderer))
 
     assert flat_markdown_to_outline(stripped_md) == output_without_nbsp
 

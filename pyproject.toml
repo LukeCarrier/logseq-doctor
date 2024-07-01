@@ -21,7 +21,7 @@ classifiers = [
 ]
 dependencies = [
   'maya',
-  'mistletoe',
+  'mistletoe-ebp',
   'requests',
   'typer[all]',
 ]
