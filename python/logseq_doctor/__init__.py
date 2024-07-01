@@ -20,7 +20,8 @@ class LogseqRenderer(BaseRenderer):
         super().__init__(*args, **kwargs)
         self.render_map = {
             **self.render_map,
-            "Document": self.render_inner,
+            "Document": self.render_document,
+            "FrontMatter": self.render_front_matter,
         }
         self.current_level = 0
         self.bullet = "- "
@@ -31,6 +32,13 @@ class LogseqRenderer(BaseRenderer):
         leading_spaces = "  " * indent
         new_line_at_the_end = os.linesep if nl else ""
         return f"{leading_spaces}{self.continuation if continuation else self.bullet}{text}{new_line_at_the_end}"
+
+    def render_document(self, token: block_tokens.Document) -> str:
+        front_matter = self.render_front_matter(token.front_matter) if token.front_matter else ""
+        return front_matter + self.render_inner(token)
+
+    def render_front_matter(self, token: block_tokens.FrontMatter) -> str:
+        return f"---{os.linesep}{token.content}---{os.linesep}"
 
     def render_heading(self, token: block_tokens.Heading | block_tokens.SetextHeading) -> str:
         """Setext headings: https://spec.commonmark.org/0.30/#setext-headings."""
@@ -135,6 +143,14 @@ class LogseqRenderer(BaseRenderer):
 
 def flat_markdown_to_outline(markdown_contents: str) -> str:
     """Convert flat Markdown to an outline."""
-    find_blocks = (block_tokens.FrontMatter, *BaseRenderer.default_block_tokens)
-    context = parse_context.ParseContext(find_blocks)
-    return mistletoe.markdown(markdown_contents, renderer=LogseqRenderer, parse_context=context)
+    blocks = (
+        block_tokens.FrontMatter,
+        *BaseRenderer.default_block_tokens,
+    )
+    context = parse_context.ParseContext(find_blocks=blocks)
+    return mistletoe.markdown(
+        markdown_contents,
+        renderer=LogseqRenderer,
+        parse_context=context,
+        read_kwargs={"front_matter": True},
+    )
