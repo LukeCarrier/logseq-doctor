@@ -8,7 +8,7 @@ import mistletoe
 from mistletoe import parse_context, block_tokens, span_tokens
 from mistletoe.renderers.base import BaseRenderer
 
-from logseq_doctor.constants import CHAR_DASH
+from logseq_doctor.constants import CHAR_DASH, CHARS_UL_LEADER, OL_MARKER
 
 __version__ = "0.3.0"
 
@@ -116,7 +116,18 @@ class LogseqRenderer(BaseRenderer):
         return self.outline(self.current_level, f"```{token.language}{os.linesep}{inner}{close}")
 
     def render_list(self, token: block_tokens.List) -> str:
-        return self.render_inner(token)
+        ol = token.children and token.children[0].leader not in CHARS_UL_LEADER
+        ol_marker = ""
+
+        if ol:
+            ol_marker = self.outline(self.current_level, OL_MARKER) if ol else ""
+            self.current_level += 1
+        inner = self.render_inner(token)
+
+        if ol:
+            self.current_level -= 1
+
+        return ol_marker + inner
 
     def render_html_span(self, token: span_tokens.HTMLSpan):
         return self.render_inner(token)
