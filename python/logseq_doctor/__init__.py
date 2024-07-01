@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 
 import mistletoe
-from mistletoe import parse_context, block_tokens, span_tokens
+from mistletoe import parse_context, block_tokens, block_tokens_ext, span_tokens
 from mistletoe.renderers.base import BaseRenderer
 
 from logseq_doctor.constants import CHAR_DASH, CHARS_UL_LEADER, OL_MARKER
@@ -136,6 +136,25 @@ class LogseqRenderer(BaseRenderer):
             self.current_level -= 1
 
         return ol_marker + inner
+
+    def render_table(self, token: block_tokens_ext.Table):
+        result = ""
+        if token.header:
+            result += self.render_table_row(token.header, is_header=True)
+        rows = "".join([self.render_table_row(row) for row in token.children])
+        result += rows[0:-1]
+        return self.outline(self.current_level, result)
+
+    def render_table_row(self, token: block_tokens_ext.TableRow, is_header: bool = False):
+        result = "".join([self.render_table_cell(cell) for cell in token.children]) + "|"
+        if is_header:
+            result += os.linesep + self.outline(self.current_level, "| --- " * len(token.children) + "|", continuation=True)
+        else:
+            result = self.outline(self.current_level, result, continuation=True)
+        return result
+
+    def render_table_cell(self, token):
+        return f"| {self.render_inner(token)} "
 
     def render_html_span(self, token: span_tokens.HTMLSpan):
         return self.render_inner(token)
